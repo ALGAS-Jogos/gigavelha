@@ -1,6 +1,8 @@
 require('utils.json')
 require('utils.noobhub')
 
+local hub = noobhub.new({server="localhost", port="15565"})
+
 
 function love.update(dt)
     
