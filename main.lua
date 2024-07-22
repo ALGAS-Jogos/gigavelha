@@ -1,5 +1,8 @@
-require('json')
-function ()
+require('utils.json')
+require('utils.noobhub')
+
+
+function love.update(dt)
     
 end
 
