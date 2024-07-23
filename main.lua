@@ -1,12 +1,15 @@
 require('utils.json')
 require('utils.noobhub')
 
+math.randomseed(os.time(),os.time()-150)
 
 local ongame = false
 local hub = noobhub.new({server="187.73.30.41", port="15565"})
 local channel = math.random(10000,99999)
 local myTurn = true
 local inputchannel = ""
+local onmychannel = false
+local gameEnd,gameMessage = false, ""
 
 local table = {}
 
@@ -44,11 +47,11 @@ function love.load()
 end
 
 function love.update(dt)
-    
+    hub:enterFrame()
 end
 
 function love.draw()
-    if ongame then
+    if ongame and gameEnd==false then
         x = screenw/2-(wspacing*3)/2+wspacing
         y = 50
         for i=1,2 do
@@ -128,20 +131,36 @@ function love.draw()
         end
 
         love.graphics.setColor(1,1,1)
-        love.graphics.printf("É seu turno!",font,0,y+15,screenw-screenw/15,"right")
+        if myTurn then
+            love.graphics.printf("É seu turno!",font,0,y+15,screenw-screenw/15,"right")
+        else
+            love.graphics.printf("Aguarde!",font,0,y+15,screenw-screenw/15,"right")
+        end
 
-    else
+    elseif gameEnd==false then
         y = 50
         love.graphics.printf("Jogo da Velha",font,0,y,screenw,"center")
         y=y+50
         love.graphics.printf("Toque em qualquer lugar da tela para usar o teclado",font,0,y,screenw,"center")
         y=y+150
-        love.graphics.printf("Digite o número da sala de alguém",font,0,y,screenw,"center")
+        if onmychannel==false then
+            love.graphics.printf("Digite o número da sala de alguém",font,0,y,screenw,"center")
+            y=y+150
+            love.graphics.printf("Sala: "..inputchannel,font,0,y,screenw,"center")
+            y=y+150
+            love.graphics.printf("Digite N para criar uma sala",font,0,y,screenw,"center")
+        else
+            love.graphics.printf("Sala: "..channel,font,0,y,screenw,"center")
+            y=y+150
+            love.graphics.printf("Esperando alguém entrar...",font,0,y,screenw,"center")
+        end
+    else
+        y = 50
+        love.graphics.printf("Jogo da Velha",font,0,y,screenw,"center")
+        y=y+50
+        love.graphics.printf("Toque em qualquer lugar da tela para voltar",font,0,y,screenw,"center")
         y=y+150
-        love.graphics.printf("Sala: "..inputchannel,font,0,y,screenw,"center")
-        y=y+150
-        love.graphics.printf("Digite N para criar uma sala",font,0,y,screenw,"center")
-        
+        love.graphics.printf(gameMessage,font,0,y,screenw,"center")
     end
 end
 
@@ -155,14 +174,31 @@ function love.mousepressed(mx,my)
     if ongame==false then
         love.keyboard.setTextInput(true)
     end
+    if gameEnd then
+        ongame=false
+        hub:unsubscribe()
+        channel=math.random(10000,99999)
+        gameEnd=false
+        onmychannel=false
+        inputchannel=""
+    end
+
+    if myTurn==false then return false end
 
     --bounds
     --x+w >= cx and x <= cx + cw and y+h >= cy and y <= cy + ch
     x = screenw/2-(wspacing*3)/2
     y = 50
     if mx >= x and mx <= x+wspacing*3 and my >= y and my <= y+hspacing*3 then
+        if squaresAvailable[selectedSquare]<=0 then return false end
         boxNumber = tableBounds(mx,my)
-        table[boxNumber] = team+(2*selectedSquare-2)
+        local squarePut = team+(2*selectedSquare-2)
+        if squarePut>=table[boxNumber]+team then
+            table[boxNumber] = squarePut
+            publish("play",json.encode({play=boxNumber,square=squarePut}))
+            myTurn=false
+            squaresAvailable[selectedSquare]=squaresAvailable[selectedSquare]-1 --take one
+        end
     else
         x=25
         y=screenh-screenh/4+25
@@ -174,6 +210,33 @@ function love.mousepressed(mx,my)
                 selectedSquare=i
             end
             x=x+spacing
+        end
+    end
+end
+
+function love.textinput(t)
+    if ongame==false and onmychannel==false then
+        if tonumber(t) then
+            inputchannel=inputchannel..t
+            inputchannel=string.sub(inputchannel,1,5)
+        end
+    end
+end
+
+function love.keypressed(key)
+    if ongame==false then
+        if key=="backspace" and onmychannel==false then
+            inputchannel=string.sub(inputchannel,1,#inputchannel-1)
+        end
+        if key=="n" then
+            onmychannel=true
+            enterGame(channel)
+        end
+        if key=="return" then
+            enterGame(inputchannel)
+            ongame=true
+            myTurn=false
+            team=2
         end
     end
 end
@@ -190,8 +253,40 @@ function tableBounds(mx,my)
     end
 end
 
-function boxBounds(mx,my)
-    
+function checkVictory()
+    local winningCombinations = {
+        {1, 2, 3}, {4, 5, 6}, {7, 8, 9}, -- Rows
+        {1, 4, 7}, {2, 5, 8}, {3, 6, 9}, -- Columns
+        {1, 5, 9}, {3, 5, 7}             -- Diagonals
+    }
+
+    for t=1,2 do
+        for i, combination in ipairs(winningCombinations) do
+            local a, b, c = combination[1], combination[2], combination[3]
+            if t==1 then
+                if isOdd(table[a]) and isOdd(table[b]) and isOdd(table[c]) and table[a]>0 and table[b]>0 and table[c]>0 then
+                   return t
+                end
+            else
+                if not isOdd(table[a]) and not isOdd(table[b]) and not isOdd(table[c]) and table[a]>0 and table[b]>0 and table[c]>0 then
+                    return t
+                 end
+            end
+        end
+    end
+
+    for i = 1, 9 do
+        if table[i]==0 then
+            return nil -- Game is still ongoing
+        end
+    end
+
+    return "draw"
+end
+
+function isOdd(n)
+    if n%2==0 then return false end
+    return true
 end
 
 
@@ -214,11 +309,41 @@ function enterGame(channel)
     hub:subscribe({
         channel = channel,
         callback = function(message)
-            if message.action=="ping" then
-                publish("ping","pong")
+            if message.action=="join" then
+                ongame=true
+            elseif message.action=="play" then
+                local play = json.decode(message.content)
+                table[play.play]=play.square
+                myTurn=true
+                winner = checkVictory()
+                if winner=="draw" then
+                    publish("draw","")
+                    gameEnd=true
+                    gameMessage="Empate!"
+                elseif winner==1 or winner==2 then
+                    publish("win",winner)
+                    gameEnd=true
+                    if winner==team then
+                        gameMessage="Você venceu!"
+                    else
+                        gameMessage="Você perdeu! :("
+                    end
+                end
+            elseif message.action=="draw" then
+                gameEnd=true
+                gameMessage="Empate!"
+            elseif message.action=="win" then
+                gameEnd=true
+                print(team, message.content)
+                if message.content==team then
+                    gameMessage="Você venceu!"
+                else
+                    gameMessage="Você perdeu! :("
+                end
             end
         end
-    }) 
+    })
+    publish("join","")
 end
 
 function publish(action,content)    
