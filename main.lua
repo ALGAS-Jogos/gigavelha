@@ -1,5 +1,6 @@
 require('utils.json')
 require('utils.noobhub')
+require('utils.draw')
 
 math.randomseed(os.time(),os.time()-150)
 
@@ -142,24 +143,29 @@ function love.draw()
         love.graphics.printf("GigaVelha",font,0,y,screenw,"center")
         y=y+50
         love.graphics.printf("Toque em qualquer lugar da tela para usar o teclado",font,0,y,screenw,"center")
-        y=y+150
+        y=screenh/2-font:getHeight()/2
         if onmychannel==false then
             love.graphics.printf("Digite o número da sala de alguém",font,0,y,screenw,"center")
-            y=y+150
+            local _, wrap = font:getWrap("Digite o número da sala de alguém",screenw)
+            y=y+(font:getHeight()*#wrap)
             love.graphics.printf("Sala: "..inputchannel,font,0,y,screenw,"center")
-            y=y+150
-            love.graphics.printf("Digite N para criar uma sala",font,0,y,screenw,"center")
+            y=screenh-font:getHeight()-45
+            love.graphics.setColor(0.1,0.1,0.1)
+            local tw,th = font:getWrap("Criar uma sala",screenw-30)
+            love.graphics.rectangle('fill',screenw/2-tw/2-15+10,y-15+10,tw+30,font:getHeight()*#th+30)
+            love.graphics.setColor(0.45,0.45,0.45)
+            love.graphics.rectangle('fill',screenw/2-tw/2-15,y-15,tw+30,font:getHeight()*#th+30)
+            love.graphics.setColor(1,1,1)
+            love.graphics.printf("Criar uma sala",font,15,y,screenw-30,"center")
         else
             love.graphics.printf("Sala: "..channel,font,0,y,screenw,"center")
-            y=y+150
+            y=y+font:getHeight()
             love.graphics.printf("Esperando alguém entrar...",font,0,y,screenw,"center")
         end
     else
         y = 50
         love.graphics.printf("GigaVelha",font,0,y,screenw,"center")
-        y=y+50
-        love.graphics.printf("Toque em qualquer lugar da tela para voltar",font,0,y,screenw,"center")
-        y=y+150
+        y=screenh/2-font:getHeight()/2
         love.graphics.printf(gameMessage,font,0,y,screenw,"center")
     end
 end
@@ -172,7 +178,7 @@ end
 
 function love.mousepressed(mx,my)
     if ongame==false then
-        love.keyboard.setTextInput(true)
+        menuButtonCollision(mx,my)
         return false
     end
     if gameEnd then
@@ -209,6 +215,10 @@ function love.mousepressed(mx,my)
             x=x+spacing
         end
     end
+end
+
+function menuButtonCollision(mx,my)
+    
 end
 
 function love.textinput(t)
