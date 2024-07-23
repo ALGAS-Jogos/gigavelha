@@ -139,7 +139,7 @@ function love.draw()
 
     elseif gameEnd==false then
         y = 50
-        love.graphics.printf("Jogo da Velha",font,0,y,screenw,"center")
+        love.graphics.printf("GigaVelha",font,0,y,screenw,"center")
         y=y+50
         love.graphics.printf("Toque em qualquer lugar da tela para usar o teclado",font,0,y,screenw,"center")
         y=y+150
@@ -156,7 +156,7 @@ function love.draw()
         end
     else
         y = 50
-        love.graphics.printf("Jogo da Velha",font,0,y,screenw,"center")
+        love.graphics.printf("GigaVelha",font,0,y,screenw,"center")
         y=y+50
         love.graphics.printf("Toque em qualquer lugar da tela para voltar",font,0,y,screenw,"center")
         y=y+150
@@ -173,14 +173,11 @@ end
 function love.mousepressed(mx,my)
     if ongame==false then
         love.keyboard.setTextInput(true)
+        return false
     end
     if gameEnd then
-        ongame=false
-        hub:unsubscribe()
-        channel=math.random(10000,99999)
-        gameEnd=false
-        onmychannel=false
-        inputchannel=""
+        resetVars()
+        return false
     end
 
     if myTurn==false then return false end
@@ -276,7 +273,7 @@ function checkVictory()
     end
 
     for i = 1, 9 do
-        if table[i]==0 then
+        if table[i]<=2 then
             return nil -- Game is still ongoing
         end
     end
@@ -320,6 +317,7 @@ function enterGame(channel)
                     publish("draw","")
                     gameEnd=true
                     gameMessage="Empate!"
+                    loadTable()
                 elseif winner==1 or winner==2 then
                     publish("win",winner)
                     gameEnd=true
@@ -328,6 +326,7 @@ function enterGame(channel)
                     else
                         gameMessage="Você perdeu! :("
                     end
+                    loadTable()
                 end
             elseif message.action=="draw" then
                 gameEnd=true
@@ -357,4 +356,19 @@ function publish(action,content)
         }
     })
     print(action)
+end
+
+function resetVars()
+    ongame=false
+    channel=math.random(10000,99999)
+    gameEnd=false
+    onmychannel=false
+    inputchannel=""
+    loadTable()
+    myTurn=true
+    selectedSquare=1
+    for i=1,3 do
+        squaresAvailable[i]=3
+    end
+    team=1
 end
