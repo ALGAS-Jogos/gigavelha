@@ -3,6 +3,7 @@ require('utils.noobhub')
 require('utils.vars')
 require('utils.draw')
 require('utils.utils')
+require('utils.network')
 
 function love.load()
     love.graphics.setBackgroundColor(0.2,0.2,0.2)
