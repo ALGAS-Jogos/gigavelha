@@ -30,10 +30,15 @@ function drawStartMenu()
         textboxWrapper("Sala:",inputchannel,y)
         y=y+font:getHeight()+45
         btnWrap("Entrar",y,function ()
-            menu="game"
-            enterGame(inputchannel)
-            team=2
-            myTurn=false
+            if #inputchannel==5 then
+                menu="game"
+                enterGame(inputchannel)
+                team=2
+                myTurn=false
+            else
+                warning=true
+                warningMsg="O jogo inserido não existe"
+            end
         end)
         y=screenh-font:getHeight()-45
         btnWrap("Voltar",y,function ()
@@ -319,4 +324,34 @@ function resetDummyBoard()
     for i=1,9 do
         dummyBoard[i] = math.random(0,6)
     end
+end
+
+function drawWarning()
+    love.graphics.setColor(0,0,0,0.5)
+    love.graphics.rectangle('fill',0,0,screenw,screenh)
+
+    local w = math.min(screenw-30,font:getWidth(warningMsg)+30)
+    local _, wrap = font:getWrap(warningMsg,w)
+    local h = font:getHeight()+(font:getHeight()*#wrap)+15+15+font:getHeight()+30+30
+    local x = screenw/2-w/2
+    local y = screenh/2-h/2
+
+    --draw middle
+    love.graphics.setColor(0.1,0.1,0.1,0.5)
+    love.graphics.rectangle("fill",x+10,y+10,w,h)
+    love.graphics.setColor(0.2,0.2,0.2)
+    love.graphics.rectangle('fill',x,y,w,h)
+
+    --draw message
+    love.graphics.setColor(1,1,1)
+    love.graphics.printf("Aviso:",font,x,y+5,w,"center")
+    y=y+5+font:getHeight()+15
+
+    love.graphics.printf(warningMsg,font,x+15,y,w-30,"center")
+    y=y+15+(font:getHeight()*#wrap)+15
+
+    btnWrap("Fechar",y,function ()
+        warning=false
+    end)
+    
 end
