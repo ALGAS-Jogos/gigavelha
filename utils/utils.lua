@@ -33,3 +33,15 @@ function isOdd(n)
     if n%2==0 then return false end
     return true
 end
+
+function isStrictBigger(n,m)
+    if isOdd(n) then --red team
+        return m-2<=n+1
+    else --blue team
+        return m-2<=n
+    end
+end
+
+function isSameTeam(n,m)
+    return isOdd(n) and isOdd(m)
+end
